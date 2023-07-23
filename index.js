@@ -8,7 +8,6 @@ const { bot, sendTG } = require("./tg-bot");
 
 let addedUsers = [];
 let isPauseBot = false;
-x
 
 const USERS_PERSIST_PATH = path.join(process.cwd(), 'users.json');
 
