@@ -1,28 +1,28 @@
 const { parse } = require("csv-parse");
-const fs = require('fs').promises;
 const { shuffle, uniqBy } = require("lodash");
 const { instance } = require("./api");
-const { checkNameById } = require("./utils");
-const { bot } = require("./tg-bot");
 const path = require('path');
+const fs = require('fs').promises;
+const { checkNameById } = require("./utils");
+const { bot, sendTG } = require("./tg-bot");
+
+let addedUsers = [];
+let isPauseBot = false;
+x
 
 const USERS_PERSIST_PATH = path.join(process.cwd(), 'users.json');
 
 async function loadSavedUsersIfExist() {
   try {
     const content = await fs.readFile(USERS_PERSIST_PATH);
-    const users = uniqBy(JSON.parse(content), 'id');
-    fs.writeFile(USERS_PERSIST_PATH, JSON.stringify(users));
-    return users;
+    addedUsers = uniqBy(JSON.parse(content), 'id');
   } catch (err) {
+    console.log("=>", err);
     return null;
   }
 }
 
 loadSavedUsersIfExist();
-
-const addedUsers = [];
-let isPauseBot = false;
 
 const MAIN_LIST = `
     https://docs.google.com/spreadsheets/u/0/d/1Q94gtj4Puk8JWTKsFE-aKBh_irITYOI3j53eW2IHl58/export?format=csv&id=1Q94gtj4Puk8JWTKsFE-aKBh_irITYOI3j53eW2IHl58&gid=0`;
@@ -41,11 +41,9 @@ const problemsList = [];
 
 const NOBODY_TEXT = "🤷‍♂️";
 
-
-
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id,
-    "Привет. Я бот с Wendy подарками.\nПиши '/add id' чтобы добавить аккаунт в рассылку. Напиример: \n/add 123456789");
+    "Привет. Я бот с Wendy подарками.\nПиши '/add id' чтобы добавить аккаунт в рассылку. Например: \n/add 123456789");
 });
 
 
@@ -62,13 +60,14 @@ bot.onText(/\/add/, async (msg) => {
   }
   const res = await checkNameById(id);
   if (res.success) {
-
-    if (checkConsist(id)) {
+const isHaveInTable = await checkConsist(id);
+    if (isHaveInTable) {
       bot.sendMessage(msg.chat.id, "Такой id уже есть в рассылке");
       return;
     }
     bot.sendMessage(msg.chat.id, `✅⏰ ${id} добавлен на модерацию.`);
-    addedUsers.push({ nickname: res.nickname, id })
+    addedUsers.push({ nickname: res.nickname, id });
+    fs.writeFile(USERS_PERSIST_PATH, JSON.stringify(addedUsers));
     console.log("➕ " + res.nickname + " " + id);
   } else {
     bot.sendMessage(msg.chat.id, res.error);
@@ -76,6 +75,9 @@ bot.onText(/\/add/, async (msg) => {
 });
 
 bot.on("message", async (msg) => {
+  if(!msg.text){
+    return;
+  };
   if (msg.from.id === OWNER_ID && msg.text.startsWith("/run")) {
     sendTG("🎉 Бот снова начинает принимать заявки.  🎉");
     isPauseBot = false;
@@ -95,6 +97,7 @@ bot.on("message", async (msg) => {
     return;
   }
   if (msg.from.id === OWNER_ID && msg.text.startsWith("/print")) {
+    await loadSavedUsersIfExist();
     bot.sendMessage(msg.chat.id, "Добавить:\n" + addedUsers.map(e => `${e.nickname} ${e.id}`).join("\n"));
     return;
   }
@@ -107,7 +110,7 @@ bot.on("message", async (msg) => {
   }
 
   if (msg.text.startsWith("/info")) {
-    bot.sendMessage(msg.chat.id, `⏰ В ожидании: ${addedUsers?.length || 0}\n/add 12345678 = Добавляет аккаунт в рассылку\n`, {
+    bot.sendMessage(msg.chat.id, `⏰ В ожидании: ${addedUsers?.length || 0}\n/add id = Добавляет аккаунт в рассылку\n`, {
       reply_markup: JSON.stringify({
         hide_keyboard: true
     })
