@@ -20,6 +20,7 @@ async function loadSavedUsersIfExist() {
     return null;
   }
 }
+console.log("Start bot");
 
 loadSavedUsersIfExist();
 
