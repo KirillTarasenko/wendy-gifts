@@ -1,0 +1,1 @@
+{"version":2,"languages":{"nodejs-npm":{"specfileHash":"22d4f69c6c23f5bad3a34c922fa1d5f9","lockfileHash":"9d93ff49496b0bbe75be91db2a1fd1af","guessedImports":["node-telegram-bot-api","axios","csv-parse","lodash","dayjs","node-schedule"],"guessedImportsHash":"f13a0148966920ed8abbf71ffa173491"}}}
